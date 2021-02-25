@@ -10,7 +10,7 @@ import time
 import numpy as np
 import math
 
-import keyboard
+#import keyboard
 import serial
 import pytesseract
 
@@ -19,7 +19,6 @@ def image_Bulr(image,kernel_size,time):
     image = cv2.GaussianBlur(image,(kernel_size, kernel_size), time)
     return image
 
-import serial
 def Robotis(id, pos, speed):
     ser = serial.Serial("COM3",1000000,timeout=0.5)
     
@@ -64,7 +63,7 @@ while True:
     T = 0
     F = 0
     E = 0
-    
+
     time_test = time.time()
     time_exe = 5
     
@@ -111,7 +110,7 @@ while True:
         
     # if ((center_object > 700) & (cent1er_object < 800)):
     if (time_exe == 5):
-        Robotis(13,24,0)
+        #Robotis(13,24,0)
         
         for i in range(time_exe):
                 
