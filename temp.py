@@ -15,33 +15,6 @@ import serial
 import pytesseract
 from ImageMethod import ImageDetectMethod
 
-
-def image_Bulr(image, kernel_size, time):
-    image = cv2.GaussianBlur(image, (kernel_size, kernel_size), time)
-    return image
-
-
-def Robotis(id, pos, speed):
-    ser = serial.Serial("COM3", 1000000, timeout=0.5)
-
-    ser.bytesize = serial.EIGHTBITS
-    arr = []
-    arr.append(0xff)
-    arr.append(0xff)
-    arr.append(id)
-    arr.append(0x05)
-    arr.append(0x03)
-    arr.append(0x20)
-    # arr.append(pos & 255)
-    # arr.append(pos // 255)
-    arr.append(speed & 255)
-    arr.append(speed // 256)
-    tt = 0xff - (sum(arr[2:9]) & 255)
-    arr.append(tt)
-    ary = bytearray(arr)
-    ser.write(arr)
-
-
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
@@ -71,42 +44,43 @@ while True:
 
     TestMethod = ImageDetectMethod(image)
 
-    Object, img_threshold = TestMethod.FindObject()
+    Object, img_threshold = TestMethod.FindObject(True)
 
     if Object:
         circle, img_canny = TestMethod.FindCircle()
-
     else:
-        cv2.imshow('x', image)
-        cv2.waitKey(1)
-
+        TestMethod.ShowImage()
         continue
 
     if circle:
         Toward = TestMethod.detectTowards()
     else:
         Loss = Loss + 1
-        cv2.imshow('x', image)
-        cv2.imshow('b', img_canny)
-        cv2.waitKey(1)
+        TestMethod.ShowImage()
+
         continue
 
     if Toward:
         result, TextImg = TestMethod.detectText()
     else:
         E = E + 1
+        TestMethod.ShowImage()
+
         continue
 
     if result:
         T = T + 1
     else:
         F = F + 1
+        TestMethod.ShowImage()
+
         continue
 
     sum = T + F + E
     print(T,F,E)
 
     if ((T <= 0) & (F <= 0) & (E <= 0)):
+        TestMethod.ShowImage()
         continue
 
     TestMethod.ShowImage()
