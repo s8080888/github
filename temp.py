@@ -27,6 +27,7 @@ cap.set(cv2.CAP_PROP_FOCUS, 10)
 Loss = 0
 
 while True:
+
     # Robotis(13,20,256)
 
     T = 0
@@ -83,9 +84,8 @@ while True:
         TestMethod.ShowImage()
         continue
 
-    TestMethod.ShowImage()
+    x = TestMethod.ShowImage()
 
-    x = cv2.waitKey(1)
     if x == ord('q'):
         print()
         print("True: ", T, ", Fasle: ", F, ", Loss: ", Loss)

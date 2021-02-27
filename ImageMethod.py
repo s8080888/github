@@ -8,20 +8,23 @@ class ImageDetectMethod:
 
     def __init__(self,image):
         self.image = image
-        self.img_canny = None
-        self.Blur = None
+        self.Blur = cv2.GaussianBlur(image, (9, 9), 9)
+        self.img_canny = cv2.Canny(self.Blur, 10, 70)
+        self.MidLine = 0
 
         self.img_Text = []
         self.img_threshold = []
         self.circles = []
-        self.center_x = []
+        self.center = []
 
         self.Correct = 0
         self.TowardErr = 0
         self.TextErr = 0
         self.Loss = 0
+        self.result = []
 
     def ShowImage(self):
+
 
         Image_list = [self.image, self.img_canny]
         Img_Name = ['image', 'canny']
@@ -32,14 +35,16 @@ class ImageDetectMethod:
         for num, show_img in enumerate(Image_list):
             if show_img is not None:
                 cv2.imshow(Img_Name[num], show_img)
-                key = cv2.waitKey(1)
+                key = cv2.waitKey(100)
 
         for n,showListImg in enumerate(ListImg):
             if showListImg:
                 count = len(showListImg)
                 for time in range(count):
                     cv2.imshow(list_Name[n] + ' ' + str(time), showListImg[time])
-                    key = cv2.waitKey(1)
+                    key = cv2.waitKey(100)
+
+        return key
 
     def FindObject(self,bounding=False):
         """
@@ -47,34 +52,31 @@ class ImageDetectMethod:
         """
         result = False
 
-        self.Blur = cv2.GaussianBlur(self.image, (9, 9), 9)
         threshold = cv2.cvtColor(self.Blur, cv2.COLOR_BGR2GRAY)
-
         _, image_threshold = cv2.threshold(threshold, 128, 255, cv2.THRESH_BINARY)
-
         contours, _ = cv2.findContours(image_threshold, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         for contour in contours:
             area = cv2.contourArea(contour)
             if area < 15000:
-                result = False
+                continue
 
             else:
                 x, y, w, h = cv2.boundingRect(contour)
-
                 if bounding:
                     cv2.rectangle(self.image, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
                 self.img_threshold.append(image_threshold[y:y+h, x:x+w])
-
-                self.center_x.append((x * 2 + w) / 2)
+                self.center.append(((x * 2 + w) / 2, (y * 2 + h) / 2))
 
                 result = True
+
+        num = len(self.img_threshold)
+        self.result = [[0, 0, 0]] * num
 
         return result,self.img_threshold
 
     def FindCircle(self):
-        self.img_canny = cv2.Canny(self.Blur, 10, 70)
 
         self.circles = cv2.HoughCircles(self.img_canny, cv2.HOUGH_GRADIENT, 1, 180,
                                         param1=100, param2=20, minRadius=1, maxRadius=20)
@@ -82,6 +84,7 @@ class ImageDetectMethod:
         if self.circles is None:
             result = False
         else:
+
             result = True
 
             for i in self.circles[0, :]:
@@ -90,14 +93,30 @@ class ImageDetectMethod:
 
         return result, self.img_canny
 
+    def SubFindMin(self, SubNum = 0, bool=True):
+        """
+        :param bool:計算X為True,反之為False
+        """
+        if bool:
+            replace = 0
+        else:
+            replace = 1
+
+        transpose_list = list(list(i) for i in zip(*self.center)) #行列互換，0為X、1為Y
+        minNum = min(transpose_list[replace], key=lambda c: abs(c - SubNum))
+        index = transpose_list[replace].index(minNum)
+        return index
 
     def detectTowards(self):
+        result = False
         for n, i in enumerate(self.circles[0, :]):
-            if i[0] > self.center_x[n]:
-                return True
+            k = self.SubFindMin(i[1],bool=False)
+            if i[0] > self.center[k][0]:
+                result = True
             else:
-                return False
+                result = False
 
+        return result
 
     def detectText(self, x_left = -30, x_right = -55, y_top = 40, y_down = -40,mode = 0):
 
@@ -109,7 +128,6 @@ class ImageDetectMethod:
         :param mode: 辨識模式 OCR二值化物件
         """
         result = False
-        k = 0
 
         if self.circles is None:
             return False
@@ -119,7 +137,6 @@ class ImageDetectMethod:
             crop_y = int(i[1])
 
             TextImg = self.image[crop_y - y_top:crop_y - y_down, crop_x - x_left:crop_x - x_right]
-
 
             kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], np.float32)
             TextImg = cv2.filter2D(TextImg, -1, kernel=kernel)
@@ -134,7 +151,6 @@ class ImageDetectMethod:
                 result_eng = pytesseract.image_to_string(TextResult)
                 arr = result_eng.split('\n')[0:-1]
                 result_eng = '\n'.join(arr)
-
                 if len(result_eng) > 0:
                     result = True
                     self.img_Text.append(TextResult)
@@ -142,7 +158,6 @@ class ImageDetectMethod:
                     result = False
 
             else:
-
                 if(len(contours_Text)) > 0:
                     result = True
                     self.img_Text.append(TextResult)
@@ -167,7 +182,7 @@ class ImageDetectMethod:
         self.img_Text = None
         self.img_threshold = None
         self.circles = None
-        self.center_x = 0
+        self.center = []
 
         self.Correct = 0
         self.TowardErr = 0
