@@ -5,8 +5,10 @@ pytesseract.pytesseract.tesseract_cmd = r'E:\Tesseract-ORC\tesseract.exe'
 
 
 class ImageDetectMethod:
-
     def __init__(self,image):
+        #self.Cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+
+        #self.ret, self.image = self.Cap.read()
         self.image = image
         self.Blur = cv2.GaussianBlur(image, (9, 9), 9)
         self.img_canny = cv2.Canny(self.Blur, 10, 70)
@@ -24,7 +26,6 @@ class ImageDetectMethod:
         self.result = []
 
     def ShowImage(self):
-
 
         Image_list = [self.image, self.img_canny]
         Img_Name = ['image', 'canny']
@@ -45,6 +46,20 @@ class ImageDetectMethod:
                     key = cv2.waitKey(100)
 
         return key
+
+    def SubFindMin(self, SubNum = 0, bool=True):
+        """
+        :param bool:計算X為True,反之為False
+        """
+        if bool:
+            replace = 0
+        else:
+            replace = 1
+
+        transpose_list = list(list(i) for i in zip(*self.center)) #行列互換，0為X、1為Y
+        minNum = min(transpose_list[replace], key=lambda c: abs(c - SubNum))
+        index = transpose_list[replace].index(minNum)
+        return index
 
     def FindObject(self,bounding=False):
         """
@@ -72,40 +87,24 @@ class ImageDetectMethod:
                 result = True
 
         num = len(self.img_threshold)
-        self.result = [[0, 0, 0]] * num
-
-        return result,self.img_threshold
+        for time in range(num):
+            self.result.append([0,0])
+        self.result.append(0)
+        return result
 
     def FindCircle(self):
 
         self.circles = cv2.HoughCircles(self.img_canny, cv2.HOUGH_GRADIENT, 1, 180,
                                         param1=100, param2=20, minRadius=1, maxRadius=20)
-
         if self.circles is None:
             result = False
         else:
-
             result = True
-
             for i in self.circles[0, :]:
                 cv2.circle(self.image, (i[0], i[1]), int(i[2]), (0, 255, 0), 2)
                 cv2.circle(self.image, (i[0], i[1]), 2, (0, 0, 255), 3)
 
-        return result, self.img_canny
-
-    def SubFindMin(self, SubNum = 0, bool=True):
-        """
-        :param bool:計算X為True,反之為False
-        """
-        if bool:
-            replace = 0
-        else:
-            replace = 1
-
-        transpose_list = list(list(i) for i in zip(*self.center)) #行列互換，0為X、1為Y
-        minNum = min(transpose_list[replace], key=lambda c: abs(c - SubNum))
-        index = transpose_list[replace].index(minNum)
-        return index
+        return result
 
     def detectTowards(self):
         result = False
@@ -132,9 +131,10 @@ class ImageDetectMethod:
         if self.circles is None:
             return False
         for i in self.circles[0, :]:
-
             crop_x = int(i[0])
             crop_y = int(i[1])
+
+            k = self.SubFindMin(crop_y,bool=False)
 
             TextImg = self.image[crop_y - y_top:crop_y - y_down, crop_x - x_left:crop_x - x_right]
 
@@ -147,25 +147,32 @@ class ImageDetectMethod:
             _, TextResult = cv2.threshold(TextImg_Canny, 85, 255, cv2.THRESH_BINARY)
             contours_Text, _ = cv2.findContours(TextResult, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+            cv2.putText(self.image,str(k), (crop_x-10, crop_y-10), cv2.FONT_HERSHEY_SIMPLEX,
+                                    1, (0, 255, 255), 1, cv2.LINE_AA)
+
             if mode == 1:
                 result_eng = pytesseract.image_to_string(TextResult)
                 arr = result_eng.split('\n')[0:-1]
                 result_eng = '\n'.join(arr)
                 if len(result_eng) > 0:
                     result = True
+                    self.result[k][0] += 1
                     self.img_Text.append(TextResult)
                 else:
+                    self.result[k][1] += 1
                     result = False
-
             else:
                 if(len(contours_Text)) > 0:
                     result = True
+                    self.result[k][0] += 1
                     self.img_Text.append(TextResult)
-
                 else:
+                    self.result[k][1] += 1
                     result = False
 
-        return result,self.img_Text
+        print(self.result)
+
+        return result
 
     def CheckResult(self,threshold = 3):
         """

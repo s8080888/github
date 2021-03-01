@@ -45,10 +45,10 @@ while True:
 
     TestMethod = ImageDetectMethod(image)
 
-    Object, img_threshold = TestMethod.FindObject(True)
+    Object = TestMethod.FindObject()
 
     if Object:
-        circle, img_canny = TestMethod.FindCircle()
+        circle = TestMethod.FindCircle()
     else:
         TestMethod.ShowImage()
         continue
@@ -62,7 +62,7 @@ while True:
         continue
 
     if Toward:
-        result, TextImg = TestMethod.detectText()
+        result = TestMethod.detectText()
     else:
         E = E + 1
         TestMethod.ShowImage()
@@ -78,7 +78,6 @@ while True:
         continue
 
     sum = T + F + E
-    print(T,F,E)
 
     if ((T <= 0) & (F <= 0) & (E <= 0)):
         TestMethod.ShowImage()
