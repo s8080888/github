@@ -30,21 +30,8 @@ while True:
 
     # Robotis(13,20,256)
 
-    T = 0
-    F = 0
-    E = 0
-
-    time_test = time.time()
-
-    _, image = cap.read()
-
-    image = image[400:900, :1500]
-
-    cv2.line(image, (200, 0), (200, 500), (255, 0, 0), 1)
-    cv2.line(image, (1300, 0), (1300, 500), (255, 0, 0), 1)
 
     TestMethod = ImageDetectMethod(image)
-
     Object = TestMethod.FindObject()
 
     if Object:
@@ -56,17 +43,13 @@ while True:
     if circle:
         Toward = TestMethod.detectTowards()
     else:
-        Loss = Loss + 1
         TestMethod.ShowImage()
-
         continue
 
     if Toward:
         result = TestMethod.detectText()
     else:
-        E = E + 1
         TestMethod.ShowImage()
-
         continue
 
     if result:
@@ -74,37 +57,19 @@ while True:
     else:
         F = F + 1
         TestMethod.ShowImage()
-
-        continue
-
-    sum = T + F + E
-
-    if ((T <= 0) & (F <= 0) & (E <= 0)):
-        TestMethod.ShowImage()
         continue
 
     x = TestMethod.ShowImage()
 
     if x == ord('q'):
-        print()
-        print("True: ", T, ", Fasle: ", F, ", Loss: ", Loss)
-
         cv2.destroyAllWindows()
         cap.release()
-        break
+        cost_time = time.time() - time_test
 
-        time5 = time.time() - time_test
         print()
-        print("\r檢測耗時：%.2f " % time5, flush=True)
-        print("偵測結果： ", end="")
+        print("\r檢測耗時：%.2f " % cost_time, flush=True)
 
-        if E < 1:
-            if T > F:
-                print("朝向正確，文字正確，True")
-            else:
-                print("朝向正確，文字錯誤，False")
-        else:
-            print("朝向錯誤")
+        break
 
 cv2.destroyAllWindows()
 cap.release()
