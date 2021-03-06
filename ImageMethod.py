@@ -41,7 +41,8 @@ class ImageDetectMethod:
         """
         :param bounding:是否框選物體
         """
-        result = False
+        img_threshold = []
+        resultList = []
 
         threshold = cv2.cvtColor(self.Blur, cv2.COLOR_BGR2GRAY)
         _, image_threshold = cv2.threshold(threshold, 128, 255, cv2.THRESH_BINARY)
@@ -57,26 +58,29 @@ class ImageDetectMethod:
                 if bounding:
                     cv2.rectangle(self.image, (x, y), (x + w, y + h), (255, 0, 0), 2)
 
-                self.img_threshold.append(image_threshold[y:y+h, x:x+w])
+                img_threshold.append(image_threshold[y:y+h, x:x+w])
                 self.center.append(((x * 2 + w) / 2, (y * 2 + h) / 2))
 
-        num = len(self.img_threshold)
+        num = len(img_threshold)
         for time in range(num):
             resultList.append([0,0])
         resultList.append(0)
 
-        return self.img_threshold, self.center, resultList
+        return img_threshold, self.center, resultList
 
     def FindCircle(self):
         self.circles = cv2.HoughCircles(self.img_canny, cv2.HOUGH_GRADIENT, 1, 180,
                                         param1=100, param2=20, minRadius=1, maxRadius=20)
+        k = 0
         if self.circles is None:
-            self.result[-1] += 1
+            return self.circles
         else:
             for i in self.circles[0, :]:
+
                 cv2.circle(self.image, (i[0], i[1]), int(i[2]), (0, 255, 0), 2)
                 cv2.circle(self.image, (i[0], i[1]), 2, (0, 0, 255), 3)
 
+                k = k + 1
         return self.circles
 
     def detectTowards(self):

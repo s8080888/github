@@ -3,48 +3,81 @@ import cv2
 import numpy as np
 import pytesseract
 import time
+import sys
 pytesseract.pytesseract.tesseract_cmd = r'E:\Tesseract-ORC\tesseract.exe'
+
+
+
 
 class ImplementDetectMethod:
     def __init__(self):
-        self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
-        self.cap.set(cv2.CAP_PROP_EXPOSURE, -6)
-        self.cap.set(cv2.CAP_PROP_SETTINGS, 1)
-        self.cap.set(cv2.CAP_PROP_GAIN, 0)
-        self.cap.set(cv2.CAP_PROP_FOCUS, 10)
-
+        self.cap = None
         self.Method = None
         self.threshold = []
         self.center = []
         self.img_Text = []
         self.circles = None
+        self.image = None
+        self.time = 0
+        self.counter = 0
+        self.k = 0
 
-        self.result = []
+        self.result = [[0,0],[0,0],0]
 
-    def doDetect(self):
+    def WebCam(self):
+        self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
+
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+        self.cap.set(cv2.CAP_PROP_EXPOSURE, -6)
+        # self.cap.set(cv2.CAP_PROP_SETTINGS, 1)
+        self.cap.set(cv2.CAP_PROP_GAIN, 0)
+        self.cap.set(cv2.CAP_PROP_FOCUS, 10)
+
+    def Do(self):
+        self.WebCam()
         time_strat = time.time()
-        self.Method = ImageDetectMethod(self.UpdateImage())
-        self.threshold, self.center, self.result = Method.FindObject()
-        self.circles = Method.FindCircle()
+        self.Detect()
+        self.result = [[0,0],[0,0],0]
+        print()
+        time_end = time.time() - time_strat
+        print("耗費時間共 %.2f " % time_end)
+        self.cap.release()
 
-        if
+    def Detect(self):
+        self.UpdateData()
+        self.k = self.Method.ShowImage()
+
+        if self.counter > 20:
+            self.counter = 0
+            print("NO")
+
+        if self.circles is None:
+            self.result[-1] += 1
+            self.counter += 1
+            self.Do()
 
         self.detectText()
 
         if self.CheckResult():
-            print(self.result)
-            print()
-            time_end = time.time() - time_strat
-            print("耗費時間共 {%.2f} " % time_end)
-        else:
-            self.doDetect()
+            for i in range(2):
+                if self.result[i][0] > self.result[i][1]:
+                    print("第 %d 正確" % i,end=" ")
+                else:
+                    print("第 %d 錯誤" % i,end=" ")
 
-    def UpdateImage(self):
-        _, image = self.cap.read()
-        return image[400:900, :1500]
+        else:
+            self.Detect()
+
+    def UpdateData(self):
+        ret, image = self.cap.read()
+        if ret:
+            self.image = image[400:900, :1500]
+        else:
+            self.UpdateData()
+        self.Method = ImageDetectMethod(self.image)
+        self.threshold, self.center, result = self.Method.FindObject()
+        self.circles = self.Method.FindCircle()
 
     def SubFindMin(self, SubNum = 0, bool=True):
         """
@@ -74,14 +107,14 @@ class ImplementDetectMethod:
         if self.circles is None:
             return False
         for i in self.circles[0, :]:
+
             crop_x = int(i[0])
             crop_y = int(i[1])
 
             k = self.SubFindMin(crop_y,bool=False)
-
             TextImg = self.image[crop_y - y_top:crop_y - y_down, crop_x - x_left:crop_x - x_right]
-
             kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], np.float32)
+
             TextImg = cv2.filter2D(TextImg, -1, kernel=kernel)
             TextImg = cv2.cvtColor(TextImg, cv2.COLOR_BGR2GRAY)
             TextImg = cv2.GaussianBlur(TextImg, (3, 3), 9)
@@ -118,7 +151,7 @@ class ImplementDetectMethod:
         :param threshold: 檢測次數
         """
         sum = 0
-        for i in range(len(self.threshold)-1):
+        for i in range(len(self.threshold)):
             sum += self.result[i][0]
             sum += self.result[i][1]
             if sum < threshold:
