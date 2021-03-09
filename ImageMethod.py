@@ -4,7 +4,7 @@ import pytesseract
 pytesseract.pytesseract.tesseract_cmd = r'E:\Tesseract-ORC\tesseract.exe'
 
 class ImageDetectMethod:
-    k = 0
+
     def __init__(self,image):
         self.image = image
         self.Blur = cv2.GaussianBlur(image, (9, 9), 9)

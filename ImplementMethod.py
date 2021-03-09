@@ -75,9 +75,13 @@ class ImplementDetectMethod:
             self.image = image[400:900, :1500]
         else:
             self.UpdateData()
-        self.Method = ImageDetectMethod(self.image)
+        self.entity(self.image)
+
+    def entity(self,image):
+        self.Method = ImageDetectMethod(image)
         self.threshold, self.center, result = self.Method.FindObject()
         self.circles = self.Method.FindCircle()
+
 
     def SubFindMin(self, SubNum = 0, bool=True):
         """
