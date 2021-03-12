@@ -18,7 +18,10 @@ from ImplementMethod import ImplementDetectMethod
 
 
 while True:
+    time_start = time.time()
     Method = ImplementDetectMethod()
     Method.Do()
+    time_end = time.time() - time_start
+    print("耗費時間共 %.2f " % time_end)
 
 

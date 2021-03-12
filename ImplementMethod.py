@@ -6,9 +6,6 @@ import time
 import sys
 pytesseract.pytesseract.tesseract_cmd = r'E:\Tesseract-ORC\tesseract.exe'
 
-
-
-
 class ImplementDetectMethod:
     def __init__(self):
         self.cap = None
@@ -19,7 +16,8 @@ class ImplementDetectMethod:
         self.circles = None
         self.image = None
         self.time = 0
-        self.counter = 0
+        self.Timecounter = 0
+        self.CapCounter = 0
         self.k = 0
 
         self.result = [[0,0],[0,0],0]
@@ -46,20 +44,23 @@ class ImplementDetectMethod:
 
     def Detect(self):
         self.UpdateData()
-        self.k = self.Method.ShowImage()
+        self.k = self.Method.ShowImage(img_threshold=self.threshold,img_Text=self.img_Text)
 
-        if self.counter > 20:
-            self.counter = 0
+        if self.Timecounter > 20:
+            self.Timecounter = 0
             print("NO")
 
         if self.circles is None:
             self.result[-1] += 1
-            self.counter += 1
-            self.Do()
+            self.Timecounter += 1
+            self.cap.release()
+            self.WebCam()
+            self.UpdateData()
 
         self.detectText()
 
         if self.CheckResult():
+            print(self.result)
             for i in range(2):
                 if self.result[i][0] > self.result[i][1]:
                     print("第 %d 正確" % i,end=" ")
@@ -71,9 +72,14 @@ class ImplementDetectMethod:
 
     def UpdateData(self):
         ret, image = self.cap.read()
-        if ret:
-            self.image = image[400:900, :1500]
+
+        if self.cap.isOpened():
+            image = cv2.flip(image, -1)
+            self.image = image[300:900, 500:1800]
         else:
+            # self.CapCounter += 1
+            # self.cap.release()
+            # self.WebCam()
             self.UpdateData()
         self.entity(self.image)
 
@@ -110,45 +116,50 @@ class ImplementDetectMethod:
 
         if self.circles is None:
             return False
-        for i in self.circles[0, :]:
+        try:
+            for i in self.circles[0, :]:
 
-            crop_x = int(i[0])
-            crop_y = int(i[1])
+                crop_x = int(i[0])
+                crop_y = int(i[1])
 
-            k = self.SubFindMin(crop_y,bool=False)
-            TextImg = self.image[crop_y - y_top:crop_y - y_down, crop_x - x_left:crop_x - x_right]
-            kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], np.float32)
+                k = self.SubFindMin(crop_y,bool=False)
+                TextImg = self.image[crop_y - y_top:crop_y - y_down, crop_x - x_left:crop_x - x_right]
+                kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], np.float32)
 
-            TextImg = cv2.filter2D(TextImg, -1, kernel=kernel)
-            TextImg = cv2.cvtColor(TextImg, cv2.COLOR_BGR2GRAY)
-            TextImg = cv2.GaussianBlur(TextImg, (3, 3), 9)
-            TextImg_Canny = cv2.Canny(TextImg, 50, 150, L2gradient=True)
+                TextImg = cv2.filter2D(TextImg, -1, kernel=kernel)
+                TextImg = cv2.cvtColor(TextImg, cv2.COLOR_BGR2GRAY)
+                TextImg = cv2.GaussianBlur(TextImg, (5, 5), 13)
+                TextImg_Canny = cv2.Canny(TextImg, 30, 150, L2gradient=True)
 
-            _, TextResult = cv2.threshold(TextImg_Canny, 85, 255, cv2.THRESH_BINARY)
-            contours_Text, _ = cv2.findContours(TextResult, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                _, TextResult = cv2.threshold(TextImg_Canny, 200, 255, cv2.THRESH_BINARY)
+                contours_Text, _ = cv2.findContours(TextResult, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-            cv2.putText(self.image,str(k), (crop_x-10, crop_y-10), cv2.FONT_HERSHEY_SIMPLEX,
-                                    1, (0, 255, 255), 1, cv2.LINE_AA)
+                cv2.putText(self.image,str(k), (crop_x-10, crop_y-10), cv2.FONT_HERSHEY_SIMPLEX,
+                                        1, (0, 255, 255), 1, cv2.LINE_AA)
 
-            if mode == 1:
-                result_eng = pytesseract.image_to_string(TextResult)
-                arr = result_eng.split('\n')[0:-1]
-                result_eng = '\n'.join(arr)
-                if len(result_eng) > 0:
-                    result = True
-                    self.img_Text.append(TextResult)
+                if mode == 1:
+                    result_eng = pytesseract.image_to_string(TextResult)
+                    arr = result_eng.split('\n')[0:-1]
+                    result_eng = '\n'.join(arr)
+                    if len(result_eng) > 0:
+                        result = True
+                        self.img_Text.append(TextResult)
+                    else:
+                        result = False
                 else:
-                    result = False
-            else:
-                if(len(contours_Text)) > 0:
-                    result = True
-                    self.img_Text.append(TextResult)
+                    if(len(contours_Text)) > 0:
+                        result = True
+                        self.img_Text.append(TextResult)
+                    else:
+                        result = False
+                if result:
+                    self.result[k][0] += 1
                 else:
-                    result = False
-            if result:
-                self.result[k][0] += 1
-            else:
-                self.result[k][1] += 1
+                    self.result[k][1] += 1
+        except:
+            self.cap.release()
+            self.WebCam()
+            self.UpdateData()
 
     def CheckResult(self,threshold = 3):
         """

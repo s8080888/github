@@ -8,7 +8,7 @@ class ImageDetectMethod:
     def __init__(self,image):
         self.image = image
         self.Blur = cv2.GaussianBlur(image, (9, 9), 9)
-        self.img_canny = cv2.Canny(self.Blur, 10, 70)
+        self.img_canny = cv2.Canny(self.Blur, 3, 50)
 
         self.circles = []
         self.center = []
@@ -24,14 +24,14 @@ class ImageDetectMethod:
         for num, show_img in enumerate(Image_list):
             if show_img is not None:
                 cv2.imshow(Img_Name[num], show_img)
-                key = cv2.waitKey(100)
+                key = cv2.waitKey(5)
 
         for n,showListImg in enumerate(ListImg):
             if showListImg:
                 count = len(showListImg)
                 for time in range(count):
                     cv2.imshow(list_Name[n] + ' ' + str(time), showListImg[time])
-                    key = cv2.waitKey(100)
+                    key = cv2.waitKey(5)
 
         return key
 
