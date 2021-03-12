@@ -8,7 +8,7 @@ class ImageDetectMethod:
     def __init__(self,image):
         self.image = image
         self.Blur = cv2.GaussianBlur(image, (9, 9), 9)
-        self.img_canny = cv2.Canny(self.Blur, 3, 50)
+        self.img_canny = cv2.Canny(self.Blur, 3, 45)
 
         self.circles = []
         self.center = []
@@ -24,18 +24,18 @@ class ImageDetectMethod:
         for num, show_img in enumerate(Image_list):
             if show_img is not None:
                 cv2.imshow(Img_Name[num], show_img)
-                key = cv2.waitKey(5)
+                key = cv2.waitKey(1)
 
         for n,showListImg in enumerate(ListImg):
             if showListImg:
                 count = len(showListImg)
                 for time in range(count):
                     cv2.imshow(list_Name[n] + ' ' + str(time), showListImg[time])
-                    key = cv2.waitKey(5)
+                    key = cv2.waitKey(1)
+
+                cv2.destroyWindow(list_Name[n] + ' ' + str(time))
 
         return key
-
-
 
     def FindObject(self,bounding=False):
         """
@@ -93,21 +93,6 @@ class ImageDetectMethod:
                 result = False
 
         return result
-
-
-
-    def init(self):
-        self.img_canny = None
-        self.Blur = None
-        self.img_Text = None
-        self.img_threshold = None
-        self.circles = None
-        self.center = []
-
-        self.Correct = 0
-        self.TowardErr = 0
-        self.TowardErr = 0
-        self.Loss = 0
 
     def Robotis(self, id, speed,COM = "COM3"):
         ser = serial.Serial(COM, 1000000, timeout=0.5)
