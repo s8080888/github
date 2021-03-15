@@ -4,6 +4,8 @@ import numpy as np
 import pytesseract
 import time
 import sys
+from scipy import ndimage
+
 pytesseract.pytesseract.tesseract_cmd = r'E:\Tesseract-ORC\tesseract.exe'
 
 class ImplementDetectMethod:
@@ -13,6 +15,7 @@ class ImplementDetectMethod:
         self.threshold = []
         self.center = []
         self.img_Text = []
+        self.ShowThreshold = None
         self.circles = None
         self.image = None
         self.time = 0
@@ -27,7 +30,7 @@ class ImplementDetectMethod:
 
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
-        self.cap.set(cv2.CAP_PROP_EXPOSURE, -6)
+        self.cap.set(cv2.CAP_PROP_EXPOSURE, -3)
         # self.cap.set(cv2.CAP_PROP_SETTINGS, 1)
         self.cap.set(cv2.CAP_PROP_GAIN, 0)
         self.cap.set(cv2.CAP_PROP_FOCUS, 10)
@@ -44,7 +47,7 @@ class ImplementDetectMethod:
 
     def Detect(self):
         self.UpdateData()
-        self.k = self.Method.ShowImage(img_threshold=self.threshold,img_Text=self.img_Text)
+        self.k = self.Method.ShowImage(img_threshold=self.ShowThreshold, img_Text=self.img_Text)
 
         if self.Timecounter > 20:
             self.Timecounter = 0
@@ -74,18 +77,15 @@ class ImplementDetectMethod:
         ret, image = self.cap.read()
 
         if self.cap.isOpened():
-            image = cv2.flip(image, -1)
+            # image = cv2.flip(image, -1)
             self.image = image[300:900, 500:1800]
         else:
-            # self.CapCounter += 1
-            # self.cap.release()
-            # self.WebCam()
             self.UpdateData()
         self.entity(self.image)
 
     def entity(self,image):
         self.Method = ImageDetectMethod(image)
-        self.threshold, self.center, result = self.Method.FindObject()
+        self.threshold, self.center, self.ShowThreshold = self.Method.FindObject()
         self.circles = self.Method.FindCircle()
 
 
@@ -116,50 +116,64 @@ class ImplementDetectMethod:
 
         if self.circles is None:
             return False
-        try:
-            for i in self.circles[0, :]:
+        # try:
+        for i in self.circles[0, :]:
 
-                crop_x = int(i[0])
-                crop_y = int(i[1])
+            crop_x = int(i[0])
+            crop_y = int(i[1])
 
-                k = self.SubFindMin(crop_y,bool=False)
-                TextImg = self.image[crop_y - y_top:crop_y - y_down, crop_x - x_left:crop_x - x_right]
-                kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], np.float32)
+            k = self.SubFindMin(crop_y,bool=False)
+            TextImg = self.image[crop_y - y_top:crop_y - y_down, crop_x - x_left:crop_x - x_right]
 
-                TextImg = cv2.filter2D(TextImg, -1, kernel=kernel)
-                TextImg = cv2.cvtColor(TextImg, cv2.COLOR_BGR2GRAY)
-                TextImg = cv2.GaussianBlur(TextImg, (5, 5), 13)
-                TextImg_Canny = cv2.Canny(TextImg, 30, 150, L2gradient=True)
+            img = cv2.cvtColor(TextImg, cv2.COLOR_BGR2GRAY)
+            kernel_3x3 = np.array([[-1, -1, -1],
+                                   [-1, 8, -1],
+                                   [-1, -1, -1]])
 
-                _, TextResult = cv2.threshold(TextImg_Canny, 200, 255, cv2.THRESH_BINARY)
-                contours_Text, _ = cv2.findContours(TextResult, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            k3 = ndimage.convolve(img, kernel_3x3)
 
-                cv2.putText(self.image,str(k), (crop_x-10, crop_y-10), cv2.FONT_HERSHEY_SIMPLEX,
-                                        1, (0, 255, 255), 1, cv2.LINE_AA)
+            # 使用OpenCV的高通濾波
+            blurred = cv2.GaussianBlur(img, (11, 11), 0)
+            g_hpf = img - blurred
+            #
+            # kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], np.float32)
+            #
+            # TextImg = cv2.filter2D(g_hpf, -1, kernel=kernel)
+            # TextImg = cv2.GaussianBlur(TextImg, (5, 5), 13)
+            TextImg_Canny = cv2.Canny(TextImg, 30, 150, L2gradient=True)
 
-                if mode == 1:
-                    result_eng = pytesseract.image_to_string(TextResult)
-                    arr = result_eng.split('\n')[0:-1]
-                    result_eng = '\n'.join(arr)
-                    if len(result_eng) > 0:
-                        result = True
-                        self.img_Text.append(TextResult)
-                    else:
-                        result = False
+            _, TextResult = cv2.threshold(TextImg_Canny, 55, 255, cv2.THRESH_BINARY)
+            kernel = np.ones((3, 3), np.uint8)
+            # TextResult = cv2.erode(TextResult, kernel, iterations=1)
+
+            contours_Text, _ = cv2.findContours(TextResult, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+            cv2.putText(self.image,str(k), (crop_x-10, crop_y-10), cv2.FONT_HERSHEY_SIMPLEX,
+                                    1, (0, 255, 255), 1, cv2.LINE_AA)
+
+            if mode == 1:
+                result_eng = pytesseract.image_to_string(TextResult)
+                arr = result_eng.split('\n')[0:-1]
+                result_eng = '\n'.join(arr)
+                if len(result_eng) > 0:
+                    result = True
+                    self.img_Text.append(TextResult)
                 else:
-                    if(len(contours_Text)) > 0:
-                        result = True
-                        self.img_Text.append(TextResult)
-                    else:
-                        result = False
-                if result:
-                    self.result[k][0] += 1
+                    result = False
+            else:
+                if(len(contours_Text)) > 0:
+                    result = True
+                    self.img_Text.append(TextResult)
                 else:
-                    self.result[k][1] += 1
-        except:
-            self.cap.release()
-            self.WebCam()
-            self.UpdateData()
+                    result = False
+            if result:
+                self.result[k][0] += 1
+            else:
+                self.result[k][1] += 1
+        # except:
+        #     self.cap.release()
+        #     self.WebCam()
+        #     self.UpdateData()
 
     def CheckResult(self,threshold = 3):
         """

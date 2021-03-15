@@ -15,11 +15,11 @@ class ImageDetectMethod:
 
     def ShowImage(self, img_threshold=None, img_Text=None):
 
-        Image_list = [self.image, self.img_canny]
-        Img_Name = ['image', 'canny']
+        Image_list = [self.image, self.img_canny, img_threshold]
+        Img_Name = ['image', 'canny', 'threshold']
 
-        ListImg = [img_threshold, img_Text]
-        list_Name = ['threshold', 'img_Text']
+        ListImg = [img_Text]
+        list_Name = ['img_Text']
 
         for num, show_img in enumerate(Image_list):
             if show_img is not None:
@@ -33,8 +33,6 @@ class ImageDetectMethod:
                     cv2.imshow(list_Name[n] + ' ' + str(time), showListImg[time])
                     key = cv2.waitKey(1)
 
-                cv2.destroyWindow(list_Name[n] + ' ' + str(time))
-
         return key
 
     def FindObject(self,bounding=False):
@@ -44,13 +42,16 @@ class ImageDetectMethod:
         img_threshold = []
         resultList = []
 
-        threshold = cv2.cvtColor(self.Blur, cv2.COLOR_BGR2GRAY)
-        _, image_threshold = cv2.threshold(threshold, 128, 255, cv2.THRESH_BINARY)
-        contours, _ = cv2.findContours(image_threshold, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        lower_blue = np.array([35, 27, 0])  # 0,93,0
+        upper_blue = np.array([97, 180, 190])
+        threshold = cv2.inRange(hsv, lower_blue, upper_blue)
+        threshold = cv2.bitwise_not(threshold)
+        contours, _ = cv2.findContours(threshold, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         for contour in contours:
             area = cv2.contourArea(contour)
-            if area < 15000:
+            if (area < 40000) and (area > 100000):
                 continue
 
             else:
@@ -66,21 +67,42 @@ class ImageDetectMethod:
             resultList.append([0,0])
         resultList.append(0)
 
-        return img_threshold, self.center, resultList
+        return img_threshold, self.center, image_threshold
 
     def FindCircle(self):
-        self.circles = cv2.HoughCircles(self.img_canny, cv2.HOUGH_GRADIENT, 1, 180,
-                                        param1=100, param2=20, minRadius=1, maxRadius=20)
-        k = 0
+
+        radius = 2
+        img = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
+        # 对图像进行傅里叶变换，fft是一个三维数组，fft[:, :, 0]为实数部分，fft[:, :, 1]为虚数部分
+        fft = cv2.dft(np.float32(img), flags=cv2.DFT_COMPLEX_OUTPUT)
+        # 对fft进行中心化，生成的dshift仍然是一个三维数组
+        dshift = np.fft.fftshift(fft)
+        # 得到中心像素
+        rows, cols = self.image.shape[:2]
+        mid_row, mid_col = int(rows / 2), int(cols / 2)
+        # 构建ButterWorth高通滤波掩模
+        mask = np.ones((rows, cols, 2), np.float32)
+        mask[mid_row - radius:mid_row + radius, mid_col - radius:mid_col + radius] = 0
+        # 给傅里叶变换结果乘掩模
+        fft_filtering = dshift * mask
+        # 傅里叶逆变换
+        ishift = np.fft.ifftshift(fft_filtering)
+        image_filtering = cv2.idft(ishift)
+        image_filtering = cv2.magnitude(image_filtering[:, :, 0], image_filtering[:, :, 1])
+        # 对逆变换结果进行归一化（一般对图像处理的最后一步都要进行归一化，特殊情况除外）
+        cv2.normalize(image_filtering, image_filtering, 0, 255, cv2.NORM_MINMAX)
+        image_filtering = image_filtering.astype('uint8')
+
+        self.circles = cv2.HoughCircles(image_filtering, cv2.HOUGH_GRADIENT, 1, 180,
+                                        param1=110, param2=20, minRadius=5, maxRadius=15)
+
         if self.circles is None:
             return self.circles
         else:
             for i in self.circles[0, :]:
-
                 cv2.circle(self.image, (i[0], i[1]), int(i[2]), (0, 255, 0), 2)
                 cv2.circle(self.image, (i[0], i[1]), 2, (0, 0, 255), 3)
 
-                k = k + 1
         return self.circles
 
     def detectTowards(self):

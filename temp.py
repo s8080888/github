@@ -25,3 +25,4 @@ while True:
     print("耗費時間共 %.2f " % time_end)
 
 
+#h 35:97 s 27:180 v 0 190
