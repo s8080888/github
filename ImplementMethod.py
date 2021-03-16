@@ -22,6 +22,7 @@ class ImplementDetectMethod:
         self.CapCounter = 0
         self.k = 0
         self.bais = 0
+        self.MidLine = 0
 
         self.result = [[0,0],[0,0]]
         self.Loss = 0
@@ -31,23 +32,24 @@ class ImplementDetectMethod:
 
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
-        # self.cap.set(cv2.CAP_PROP_EXPOSURE, -4)
+        self.cap.set(cv2.CAP_PROP_EXPOSURE, -5)
         self.cap.set(cv2.CAP_PROP_SETTINGS, 1)
         self.cap.set(cv2.CAP_PROP_GAIN, 0)
         self.cap.set(cv2.CAP_PROP_FOCUS, 10)
 
     def Do(self):
-        time_strat = time.time()
-        self.Detect()
-        print(self.result)
-        self.result = [[0,0],[0,0],0]
-        print()
-        time_end = time.time() - time_strat
-        print("耗費時間共 %.2f " % time_end)
+        try:
+            self.Detect()
+            print(self.result)
+            self.result = [[0,0],[0,0]]
+            self.Do
+        except:
+            self.Do()
 
     def Detect(self):
         self.UpdateData()
         self.k = self.Method.ShowImage(img_threshold=self.ShowThreshold, img_Text=self.img_Text)
+        self.img_Text = []
 
         if self.circles is None:
             self.Loss += 1
@@ -55,14 +57,16 @@ class ImplementDetectMethod:
             self.WebCam()
             self.UpdateData()
 
-        self.detectText()
+        self.detectTowards()
 
+        self.detectText()
+        name = ["下面", "上面"]
         if self.CheckResult():
             for i in range(2):
                 if self.result[i][0] > self.result[i][1]:
-                    print("第 %d 正確" % i,end=" ")
+                    print("%s 正確" % name[i])
                 else:
-                    print("第 %d 錯誤" % i,end=" ")
+                    print("%s 錯誤" % name[i])
 
         else:
             self.Detect()
@@ -72,12 +76,14 @@ class ImplementDetectMethod:
 
         if self.cap.isOpened():
             # image = cv2.flip(image, -1)
-            self.image = image[450:850, 600:1500]
+            self.image = image[300:900, 500:1800]
         else:
             pass
         self.entity(self.image)
+        # if len(self.circles[0, :]) < 2:
+        #     self.UpdateData()
 
-    def entity(self,image):
+    def entity(self, image):
         self.Method = ImageDetectMethod(image)
         self.threshold, self.center, self.ShowThreshold = self.Method.FindObject()
         self.circles, self.bais = self.Method.FindCircle()
@@ -92,9 +98,19 @@ class ImplementDetectMethod:
             replace = 1
 
         transpose_list = list(list(i) for i in zip(*self.center)) #行列互換，0為X、1為Y
+
+        # self.MidLine = np.mean(transpose_list,1)[1]
+
         minNum = min(transpose_list[replace], key=lambda c: abs(c - SubNum))
         index = transpose_list[replace].index(minNum)
         return index
+
+    def detectTowards(self):
+        for n, i in enumerate(self.circles[0, :]):
+            k = self.SubFindMin(i[1],bool=False)
+            if i[0] < self.center[k][0]:
+                self.threshold.pop(k)
+                self.result[k][1] += 1
 
     def detectText(self, x_left=-30, x_right=-55, y_top=40, y_down=-40, mode=0):
 
@@ -113,28 +129,32 @@ class ImplementDetectMethod:
 
             k = self.SubFindMin(crop_y,bool=False)
             TextImg = self.image[crop_y - y_top:crop_y - y_down, crop_x - x_left:crop_x - x_right]
-            # kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], np.float32)  # 锐化
-            # dst = cv2.filter2D(TextImg, -1, kernel=kernel)
-            # dst = cv2.GaussianBlur(dst, (3,3), 1)
+            TextImg = cv2.GaussianBlur(TextImg, (3,3), 3)
+            kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], np.float32)  # 锐化
+            TextImg = cv2.filter2D(TextImg, -1, kernel=kernel)
+            TextImg = cv2.detailEnhance(TextImg)
+            TextImg = cv2.cvtColor(TextImg, cv2.COLOR_BGR2GRAY)
             TextImg_Canny = cv2.Canny(TextImg, 30, 150, L2gradient=True)
             _, TextResult = cv2.threshold(TextImg_Canny, 55, 255, cv2.THRESH_BINARY)
-            contours_Text, _ = cv2.findContours(TextResult, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            contours_Text, _ = cv2.findContours(TextResult, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
 
             if mode == 1:
+                self.img_Text.append(TextResult)
                 result_eng = pytesseract.image_to_string(TextResult)
                 arr = result_eng.split('\n')[0:-1]
                 result_eng = '\n'.join(arr)
-                if len(result_eng) > 0:
+                if len(result_eng) > 5:
                     self.result[k][0] += 1
-                    self.img_Text.append(TextResult)
                 else:
                     self.result[k][1] += 1
             else:
-                if(len(contours_Text)) > 0:
-                    self.result[k][0] += 1
+                self.img_Text.append(TextResult)
 
-                    self.img_Text.append(TextResult)
+                if(len(contours_Text)) > 5:
+                    # print(len(contours_Text), end=" ")
+                    self.result[k][0] += 1
                 else:
+                    # print(len(contours_Text), end=" ")
                     self.result[k][1] += 1
 
     def CheckResult(self,threshold=5):
@@ -149,5 +169,7 @@ class ImplementDetectMethod:
             if sum < threshold:
                 return False
             else:
+                sum = 0
                 continue
+
         return True

@@ -26,7 +26,7 @@ class ImageDetectMethod:
                 cv2.imshow(Img_Name[num], show_img)
                 key = cv2.waitKey(1)
 
-        for n,showListImg in enumerate(ListImg):
+        for n, showListImg in enumerate(ListImg):
             if showListImg:
                 count = len(showListImg)
                 for time in range(count):
@@ -43,18 +43,18 @@ class ImageDetectMethod:
         resultList = []
 
         hsv = cv2.cvtColor(self.image, cv2.COLOR_BGR2HSV)
-        lower_blue = np.array([35, 27, 0])  # 0,93,0
-        upper_blue = np.array([97, 180, 190])
+        lower_blue = np.array([60, 42, 0])  # 0,93,0
+        upper_blue = np.array([99, 204, 255])
         threshold = cv2.inRange(hsv, lower_blue, upper_blue)
         threshold = cv2.bitwise_not(threshold)
         kernel = np.ones((3, 3), np.uint8)
-        threshold = cv2.erode(threshold, kernel, iterations=9)
-        threshold = cv2.dilate(threshold, kernel, iterations=5)
+        threshold = cv2.erode(threshold, kernel, iterations=7)
+        threshold = cv2.dilate(threshold, kernel, iterations=7)
         contours, _ = cv2.findContours(threshold, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         for contour in contours:
             area = cv2.contourArea(contour)
-            if (area < 50000) or (area > 100000):
+            if (area < 35000) or (area > 100000):
                 continue
 
             else:
@@ -74,10 +74,12 @@ class ImageDetectMethod:
 
     def FindCircle(self):
 
-        radius = 2
+        radius = 15
         x = self.image.shape[1]
-        bais = 200
+        bais = 0
         k = x - bais
+        if k == x:
+            k = 0
 
         img = cv2.cvtColor(self.image[:, k:], cv2.COLOR_BGR2GRAY)
         # 对图像进行傅里叶变换，fft是一个三维数组，fft[:, :, 0]为实数部分，fft[:, :, 1]为虚数部分
@@ -101,27 +103,16 @@ class ImageDetectMethod:
         image_filtering = image_filtering.astype('uint8')
         self.img_canny = image_filtering
         self.circles = cv2.HoughCircles(image_filtering, cv2.HOUGH_GRADIENT, 1, 180,
-                                        param1=110, param2=20, minRadius=5, maxRadius=15)
+                                        param1=110, param2=20, minRadius=10, maxRadius=15)
 
         if self.circles is None:
-            return self.circles
+            pass
         else:
             for i in self.circles[0, :]:
                 cv2.circle(self.image, (int(i[0]+k), int(i[1])), int(i[2]), (0, 255, 0), 2)
                 cv2.circle(self.image, (int(i[0]+k), int(i[1])), 2, (0, 0, 255), 3)
 
         return self.circles, k
-
-    def detectTowards(self):
-        result = False
-        for n, i in enumerate(self.circles[0, :]):
-            k = self.SubFindMin(i[1],bool=False)
-            if i[0] > self.center[k][0]:
-                result = True
-            else:
-                result = False
-
-        return result
 
     def Robotis(self, id, speed,COM = "COM3"):
         ser = serial.Serial(COM, 1000000, timeout=0.5)

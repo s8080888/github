@@ -5,50 +5,58 @@ import cv2
 import math
 cap = cv2.VideoCapture(0,cv2.CAP_DSHOW)
 
-
-
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
-cap.set(cv2.CAP_PROP_EXPOSURE, -4)
-# cap.set(cv2.CAP_PROP_SETTINGS, 1)
+cap.set(cv2.CAP_PROP_EXPOSURE, -6)
+cap.set(cv2.CAP_PROP_SETTINGS, 1)
 cap.set(cv2.CAP_PROP_GAIN, 0)
 cap.set(cv2.CAP_PROP_FOCUS, 10)
+
+def Sobel(img):
+    x = cv2.Sobel(img, cv2.CV_16S, 1, 0)
+    y = cv2.Sobel(img, cv2.CV_16S, 0, 1)
+
+    absX = cv2.convertScaleAbs(x)  # 轉回uint8
+    absY = cv2.convertScaleAbs(y)
+
+    img_Sobel = cv2.addWeighted(absX, 0.5, absY, 0.5, 0)
+    img_Sobel = img_Sobel.astype('uint8')
+    return img_Sobel
 
 
 while True:
     mode = 0
+    w = [0, 0]
     ret, image = cap.read()
-    image = cv2.flip(image,-1)
 
-    if not ret:
-        continue
-    image = image[300:900, 500:1800]
+    image = image[200:900, :]
+
+    img_canny = cv2.Canny(image,30,150)
+
+    img = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+
+    gray_lap = cv2.Laplacian(img, cv2.CV_16S, ksize=3)
+    img_Laplacian = cv2.convertScaleAbs(gray_lap)
+
+    img_Soble = Sobel(img)
+
     TextResult = np.zeros((40,40))
-    TextImg_Canny = np.zeros_like(image)
-    
-    image1 = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
-    radius = 5
-    n = 1
+
+    img1 = image.copy()
+    kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], np.float32)
+    img1 = cv2.filter2D(img1, -1, kernel=kernel)
+
+    radius = 15
     # 对图像进行傅里叶变换，fft是一个三维数组，fft[:, :, 0]为实数部分，fft[:, :, 1]为虚数部分
-    fft = cv2.dft(np.float32(image1), flags=cv2.DFT_COMPLEX_OUTPUT)
+    fft = cv2.dft(np.float32(img), flags=cv2.DFT_COMPLEX_OUTPUT)
     # 对fft进行中心化，生成的dshift仍然是一个三维数组
     dshift = np.fft.fftshift(fft)
- 
     # 得到中心像素
     rows, cols = image.shape[:2]
     mid_row, mid_col = int(rows / 2), int(cols / 2)
- 
     # 构建ButterWorth高通滤波掩模
- 
-    mask = np.zeros((rows, cols, 2), np.float32)
-    for i in range(0, rows):
-        for j in range(0, cols):
-            # 计算(i, j)到中心点的距离
-            d = math.sqrt(pow(i - mid_row, 2) + pow(j - mid_col, 2))
-            try:
-                mask[i, j, 0] = mask[i, j, 1] = 1 / (1 + pow(radius / d, 2*n))
-            except ZeroDivisionError:
-                mask[i, j, 0] = mask[i, j, 1] = 0
+    mask = np.ones((rows, cols, 2), np.float32)
+    mask[mid_row - radius:mid_row + radius, mid_col - radius:mid_col + radius] = 0
     # 给傅里叶变换结果乘掩模
     fft_filtering = dshift * mask
     # 傅里叶逆变换
@@ -56,61 +64,71 @@ while True:
     image_filtering = cv2.idft(ishift)
     image_filtering = cv2.magnitude(image_filtering[:, :, 0], image_filtering[:, :, 1])
     # 对逆变换结果进行归一化（一般对图像处理的最后一步都要进行归一化，特殊情况除外）
-    cv2.normalize(image_filtering, image_filtering, 0, 1, cv2.NORM_MINMAX)
-    image_filtering2 = image_filtering * 255
-    image_filtering2 = image_filtering2.astype('uint8')
-    _, image_filtering3 = cv2.threshold(image_filtering2, 25, 255, cv2.THRESH_BINARY)
+    cv2.normalize(image_filtering, image_filtering, 0, 255, cv2.NORM_MINMAX)
+    image_filtering2 = image_filtering.astype('uint8')
 
-    img1 = image.copy()
+    circles = cv2.HoughCircles(image_filtering2, cv2.HOUGH_GRADIENT, 1, 180,
+                                    param1=110, param2=20, minRadius=10, maxRadius=15)
+    TextImg_Canny = np.zeros((20,20))
 
-    kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], np.float32)
-
-    img1 = cv2.filter2D(img1, -1, kernel=kernel)
-
-    w = [0,0]
-    if ret:
-        
-        g = ImageDetectMethod(img1)
-
-        threshold_ = np.zeros((600,1300))
-
-        cv2.line(image,(0,485),(1000,485),(255,255,255))
-        threshold = cv2.cvtColor(g.Blur, cv2.COLOR_BGR2GRAY)
-        _, threshold = cv2.threshold(threshold, 128, 255, cv2.THRESH_BINARY)
-        
-        circles = cv2.HoughCircles(image_filtering2, cv2.HOUGH_GRADIENT, 1, 180,
-                                   param1=150, param2=20, minRadius=5, maxRadius=15)
-
-        if circles is None:
-            pass
-        else:
-            for i in circles[0, :]:
-                cv2.circle(image, (int(i[0]), int(i[1])), int(int(i[2])), (0, 255, 0), 2)
-                cv2.circle(image, (int(i[0]), int(i[1])), 2, (0, 0, 255), 3)
-
-                w[0] = int(i[0])
-                w[1] = int(i[1])
-        try:
-            if circles is not None:
-                textImg = image[w[1] + 20:w[1] + 60, w[0] - 20: w[0] + 20]
-                TextImg = cv2.cvtColor(textImg, cv2.COLOR_BGR2GRAY)
-                TextImg_Canny = cv2.Canny(TextImg, 50, 150, L2gradient=True)
-                _, TextResult = cv2.threshold(TextImg_Canny, 85, 255, cv2.THRESH_BINARY)
-
-        except:
-            continue
-    if np.all(circles==0) or circles is None:
+    if circles is None:
         pass
     else:
-        print(circles.shape)
+        for i in circles[0, :]:
+            cv2.circle(image, (int(i[0]), int(i[1])), int(int(i[2])), (0, 255, 0), 2)
+            cv2.circle(image, (int(i[0]), int(i[1])), 2, (0, 0, 255), 3)
+
+            w[0] = int(i[0])
+            w[1] = int(i[1])
+
+    if circles is not None:
+        x_left = -30
+        x_right = -55
+        y_top = 40
+        y_down = -40
+        textImg = image[w[1] - y_top:w[1] - y_down, w[0] - x_left: w[0] - x_right]
+        textImg = cv2.GaussianBlur(textImg, (3, 3), 3)
+        kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], np.float32)  # 锐化
+        textImg = cv2.filter2D(textImg, -1, kernel=kernel)
+        textImg = cv2.detailEnhance(textImg)
+        textImg = cv2.cvtColor(textImg, cv2.COLOR_BGR2GRAY)
+        TextImg_Canny = cv2.Canny(textImg, 50, 150, L2gradient=True)
+        _, TextResult = cv2.threshold(TextImg_Canny, 85, 255, cv2.THRESH_BINARY)
+        Text, _ = cv2.findContours(TextResult, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+
+        print(len(Text), end=" ")
+        print(" ok")
+        print()
+
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    lower_blue = np.array([60, 42, 0])
+    upper_blue = np.array([99, 204, 255])
+    threshold = cv2.inRange(hsv, lower_blue, upper_blue)
+    threshold = cv2.bitwise_not(threshold)
+    kernel = np.ones((3, 3), np.uint8)
+    threshold = cv2.erode(threshold, kernel, iterations=7)
+    threshold = cv2.dilate(threshold, kernel, iterations=7)
+
+    contours, _ = cv2.findContours(threshold, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     cv2.imshow('image',image)
-    cv2.imshow('canny',image_filtering2)
-    cv2.imshow('threshold_',image_filtering3)
-    cv2.imshow('textImg', TextImg_Canny)
+    # cv2.imshow('canny',image_filtering2)
+    cv2.imshow('threshold', threshold)
+    cv2.imshow('textImg', TextResult)
     key = cv2.waitKey(1)
 
+    # img_Sobel img_Laplacian img_canny image_filtering2
     if key == ord('q'):
         cv2.destroyAllWindows()
         cap.release()
         break
+
+sum = k + T + f
+fm = (f/sum) *100
+km = (k/sum) *100
+Tm = (T/sum) *100
+print()
+print("總共： %d" % sum)
+print("失敗率： %.2f" % fm)
+print("成功率： %.2f" % km)
+print("抓到兩個： %f" % Tm)
