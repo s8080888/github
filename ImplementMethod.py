@@ -36,15 +36,16 @@ class ImplementDetectMethod:
         self.cap.set(cv2.CAP_PROP_SETTINGS, 1)
         self.cap.set(cv2.CAP_PROP_GAIN, 0)
         self.cap.set(cv2.CAP_PROP_FOCUS, 10)
+        self.cap.set(cv2.CAP_PROP_AUTO_WB, 0)
 
     def Do(self):
-        try:
-            self.Detect()
-            print(self.result)
-            self.result = [[0,0],[0,0]]
-            self.Do
-        except:
-            self.Do()
+        # try:
+        self.Detect()
+        print(self.result)
+        self.result = [[0, 0], [0, 0]]
+        self.Do
+        # except:
+        #     self.Detect()
 
     def Detect(self):
         self.UpdateData()
@@ -62,6 +63,7 @@ class ImplementDetectMethod:
         self.detectText()
         name = ["下面", "上面"]
         if self.CheckResult():
+            print()
             for i in range(2):
                 if self.result[i][0] > self.result[i][1]:
                     print("%s 正確" % name[i])
@@ -76,12 +78,10 @@ class ImplementDetectMethod:
 
         if self.cap.isOpened():
             # image = cv2.flip(image, -1)
-            self.image = image[300:900, 500:1800]
+            self.image = image[200:700, 700:1650]
         else:
             pass
         self.entity(self.image)
-        # if len(self.circles[0, :]) < 2:
-        #     self.UpdateData()
 
     def entity(self, image):
         self.Method = ImageDetectMethod(image)
@@ -100,7 +100,6 @@ class ImplementDetectMethod:
         transpose_list = list(list(i) for i in zip(*self.center)) #行列互換，0為X、1為Y
 
         # self.MidLine = np.mean(transpose_list,1)[1]
-
         minNum = min(transpose_list[replace], key=lambda c: abs(c - SubNum))
         index = transpose_list[replace].index(minNum)
         return index
@@ -129,10 +128,11 @@ class ImplementDetectMethod:
 
             k = self.SubFindMin(crop_y,bool=False)
             TextImg = self.image[crop_y - y_top:crop_y - y_down, crop_x - x_left:crop_x - x_right]
-            TextImg = cv2.GaussianBlur(TextImg, (3,3), 3)
+            TextImg = cv2.GaussianBlur(TextImg, (3,3), 1)
             kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], np.float32)  # 锐化
-            TextImg = cv2.filter2D(TextImg, -1, kernel=kernel)
+            # TextImg = cv2.filter2D(TextImg, -1, kernel=kernel)
             TextImg = cv2.detailEnhance(TextImg)
+
             TextImg = cv2.cvtColor(TextImg, cv2.COLOR_BGR2GRAY)
             TextImg_Canny = cv2.Canny(TextImg, 30, 150, L2gradient=True)
             _, TextResult = cv2.threshold(TextImg_Canny, 55, 255, cv2.THRESH_BINARY)
@@ -149,12 +149,12 @@ class ImplementDetectMethod:
                     self.result[k][1] += 1
             else:
                 self.img_Text.append(TextResult)
-
-                if(len(contours_Text)) > 5:
-                    # print(len(contours_Text), end=" ")
-                    self.result[k][0] += 1
-                else:
-                    # print(len(contours_Text), end=" ")
+                try:
+                    if(len(contours_Text[1])) > 10:
+                        self.result[k][0] += 1
+                    else:
+                        self.result[k][1] += 1
+                except:
                     self.result[k][1] += 1
 
     def CheckResult(self,threshold=5):

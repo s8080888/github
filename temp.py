@@ -19,7 +19,7 @@ from ImplementMethod import ImplementDetectMethod
 k = []
 Method = ImplementDetectMethod()
 Method.WebCam()
-
+print("?")
 while True:
     time_start = time.time()
     Method.Do()
@@ -27,6 +27,7 @@ while True:
     print("耗費時間共 %.2f " % time_end)
     k.append(time_end)
     init = np.zeros((100, 100))
+
     cv2.imshow('a', init)
     w = cv2.waitKey(5)
     if w == ord('q'):

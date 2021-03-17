@@ -42,14 +42,15 @@ class ImageDetectMethod:
         img_threshold = []
         resultList = []
 
-        hsv = cv2.cvtColor(self.image, cv2.COLOR_BGR2HSV)
-        lower_blue = np.array([60, 42, 0])  # 0,93,0
-        upper_blue = np.array([99, 204, 255])
+        image = cv2.GaussianBlur(self.image, (3,3), 3)
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        lower_blue = np.array([38, 0, 62])
+        upper_blue = np.array([93, 206, 255])
         threshold = cv2.inRange(hsv, lower_blue, upper_blue)
         threshold = cv2.bitwise_not(threshold)
         kernel = np.ones((3, 3), np.uint8)
-        threshold = cv2.erode(threshold, kernel, iterations=7)
-        threshold = cv2.dilate(threshold, kernel, iterations=7)
+        threshold = cv2.erode(threshold, kernel, iterations=3)
+        threshold = cv2.dilate(threshold, kernel, iterations=3)
         contours, _ = cv2.findContours(threshold, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         for contour in contours:
