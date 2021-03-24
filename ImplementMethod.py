@@ -20,7 +20,6 @@ class ImplementDetectMethod:
         self.image = None
         self.time = 0
         self.CapCounter = 0
-        self.k = 0
         self.bais = 0
         self.MidLine = 0
 
@@ -39,17 +38,13 @@ class ImplementDetectMethod:
         self.cap.set(cv2.CAP_PROP_AUTO_WB, 0)
 
     def Do(self):
-        # try:
         self.Detect()
         print(self.result)
         self.result = [[0, 0], [0, 0]]
-        self.Do
-        # except:
-        #     self.Detect()
 
     def Detect(self):
         self.UpdateData()
-        self.k = self.Method.ShowImage(img_threshold=self.ShowThreshold, img_Text=self.img_Text)
+        self.Method.ShowImage(img_threshold=self.ShowThreshold, img_Text=self.img_Text)
         self.img_Text = []
 
         if self.circles is None:
@@ -61,6 +56,7 @@ class ImplementDetectMethod:
         self.detectTowards()
 
         self.detectText()
+
         name = ["下面", "上面"]
         if self.CheckResult():
             print()
@@ -76,17 +72,18 @@ class ImplementDetectMethod:
     def UpdateData(self):
         ret, image = self.cap.read()
 
-        if self.cap.isOpened():
-            # image = cv2.flip(image, -1)
+        if ret:
             self.image = image[200:700, 700:1650]
-        else:
-            pass
-        self.entity(self.image)
+            self.image = cv2.flip(self.image, -1)
 
-    def entity(self, image):
-        self.Method = ImageDetectMethod(image)
+        else:
+            self.cap.release()
+            self.WebCam()
+            self.UpdateData()
+
+        self.Method = ImageDetectMethod(self.image)
         self.threshold, self.center, self.ShowThreshold = self.Method.FindObject()
-        self.circles, self.bais = self.Method.FindCircle()
+        self.circles = self.Method.FindCircle()
 
     def SubFindMin(self, SubNum = 0, bool=True):
         """
@@ -105,11 +102,13 @@ class ImplementDetectMethod:
         return index
 
     def detectTowards(self):
+        j = 0
         for n, i in enumerate(self.circles[0, :]):
             k = self.SubFindMin(i[1],bool=False)
             if i[0] < self.center[k][0]:
-                self.threshold.pop(k)
-                self.result[k][1] += 1
+                # self.circles = np.delete(self.circles, k-j,axis=1)
+                self.result[k][1] += 2
+                j += 1
 
     def detectText(self, x_left=-30, x_right=-55, y_top=40, y_down=-40, mode=0):
 
@@ -150,6 +149,7 @@ class ImplementDetectMethod:
             else:
                 self.img_Text.append(TextResult)
                 try:
+                    print(len(contours_Text[1]))
                     if(len(contours_Text[1])) > 10:
                         self.result[k][0] += 1
                     else:

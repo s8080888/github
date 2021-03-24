@@ -19,7 +19,7 @@ from ImplementMethod import ImplementDetectMethod
 k = []
 Method = ImplementDetectMethod()
 Method.WebCam()
-print("?")
+
 while True:
     time_start = time.time()
     Method.Do()
