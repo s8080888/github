@@ -30,7 +30,9 @@ while True:
     w = [0, 0]
     ret, image = cap.read()
 
-    image = image[200:700, 700:1650]
+    image = image[200:700, 500:1600]
+    image = cv2.flip(image, -1)
+    image = cv2.detailEnhance(image)
     img_canny = cv2.Canny(image,30,150)
 
     img = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
@@ -38,7 +40,7 @@ while True:
     gray_lap = cv2.Laplacian(img, cv2.CV_16S, ksize=3)
     img_Laplacian = cv2.convertScaleAbs(gray_lap)
 
-    img_Soble = Sobel(img)
+    img_Sobel = Sobel(img)
 
     TextResult = np.zeros((40,40))
 
@@ -46,7 +48,7 @@ while True:
     kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], np.float32)
     img1 = cv2.filter2D(img1, -1, kernel=kernel)
 
-    radius = 10
+    radius = 5
     # 对图像进行傅里叶变换，fft是一个三维数组，fft[:, :, 0]为实数部分，fft[:, :, 1]为虚数部分
     fft = cv2.dft(np.float32(img), flags=cv2.DFT_COMPLEX_OUTPUT)
     # 对fft进行中心化，生成的dshift仍然是一个三维数组
@@ -67,8 +69,9 @@ while True:
     cv2.normalize(image_filtering, image_filtering, 0, 255, cv2.NORM_MINMAX)
     image_filtering2 = image_filtering.astype('uint8')
 
-    circles = cv2.HoughCircles(image_filtering2, cv2.HOUGH_GRADIENT, 1, 180,
+    circles = cv2.HoughCircles(img_Sobel, cv2.HOUGH_GRADIENT, 1, 180,
                                     param1=110, param2=25, minRadius=10, maxRadius=15)
+
     TextImg_Canny = np.zeros((20,20))
 
     if circles is None:
@@ -91,11 +94,15 @@ while True:
         textImg = cv2.GaussianBlur(textImg, (3, 3), 1)
         kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], np.float32)  # 锐化
         # textImg = cv2.filter2D(textImg, -1, kernel=kernel)
-        textImg = cv2.detailEnhance(textImg)
-        textImg = cv2.cvtColor(textImg, cv2.COLOR_BGR2GRAY)
-        TextImg_Canny = cv2.Canny(textImg, 50, 150, L2gradient=True)
-        _, TextResult = cv2.threshold(TextImg_Canny, 85, 255, cv2.THRESH_BINARY)
-        Text, _ = cv2.findContours(TextResult, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        try:
+            textImg = cv2.detailEnhance(textImg)
+            textImg = cv2.cvtColor(textImg, cv2.COLOR_BGR2GRAY)
+            TextImg_Canny = cv2.Canny(textImg, 50, 150, L2gradient=True)
+            _, TextResult = cv2.threshold(TextImg_Canny, 85, 255, cv2.THRESH_BINARY)
+            Text, _ = cv2.findContours(TextResult, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+        except:
+            print("pass")
+            pass
         try:
             print(len(Text[1]), end=" ")
             print(" ok", end=" ")
@@ -103,7 +110,7 @@ while True:
             print("0", end=" ")
 
     # print()
-    # image = cv2.GaussianBlur(image, (3, 3), 5)
+    # image = cv2.GaussianBlur(image, (3, 3), 3)
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     lower_blue = np.array([38, 35, 75])
     upper_blue = np.array([92, 212, 255])
@@ -113,6 +120,9 @@ while True:
 
     # lower_blue = np.array([50, 37, 0])
     # upper_blue = np.array([97, 255, 255])
+
+    # lower_blue = np.array([0, 0, 221])
+    # upper_blue = np.array([180, 30, 255])
 
     threshold = cv2.inRange(hsv, lower_blue, upper_blue)
     threshold = cv2.bitwise_not(threshold)
@@ -134,12 +144,3 @@ while True:
         cap.release()
         break
 
-sum = k + T + f
-fm = (f/sum) *100
-km = (k/sum) *100
-Tm = (T/sum) *100
-print()
-print("總共： %d" % sum)
-print("失敗率： %.2f" % fm)
-print("成功率： %.2f" % km)
-print("抓到兩個： %f" % Tm)

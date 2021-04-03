@@ -64,7 +64,8 @@ class ImplementDetectMethod:
                 if self.result[i][0] > self.result[i][1]:
                     print("%s 正確" % name[i])
                 else:
-                    print("%s 錯誤" % name[i])
+                    if (self.result[i][1] > 20):    print("%s 朝向錯誤" % name[i])
+                    else:   print("%s 錯誤" % name[i])
 
         else:
             self.Detect()
@@ -107,7 +108,7 @@ class ImplementDetectMethod:
             k = self.SubFindMin(i[1],bool=False)
             if i[0] < self.center[k][0]:
                 # self.circles = np.delete(self.circles, k-j,axis=1)
-                self.result[k][1] += 2
+                self.result[k][1] += 10
                 j += 1
 
     def detectText(self, x_left=-30, x_right=-55, y_top=40, y_down=-40, mode=0):
@@ -149,7 +150,6 @@ class ImplementDetectMethod:
             else:
                 self.img_Text.append(TextResult)
                 try:
-                    print(len(contours_Text[1]))
                     if(len(contours_Text[1])) > 10:
                         self.result[k][0] += 1
                     else:
