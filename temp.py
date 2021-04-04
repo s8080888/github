@@ -10,32 +10,42 @@ import time
 import numpy as np
 import math
 
-# import keyboard
+import keyboard
 import serial
 import pytesseract
 from ImageMethod import ImageDetectMethod
 from ImplementMethod import ImplementDetectMethod
+from SerialPortAccept import SerialPortTerminal
 
-k = []
+
+TimeMean = []
 Method = ImplementDetectMethod()
 Method.WebCam()
+Serial = SerialPortTerminal()
 
 while True:
-    time_start = time.time()
-    Method.Do()
-    time_end = time.time() - time_start
-    print("耗費時間共 %.2f " % time_end)
-    k.append(time_end)
-    init = np.zeros((100, 100))
+    KeyWord = Serial.ReadCommand()
+    # print(KeyWord)
+    if(KeyWord):
+        time_start = time.time()
+        Result = Method.Do()
+        time_end = time.time() - time_start
+        print("耗費時間共 %.2f " % time_end)
+        TimeMean.append(time_end)
+        init = np.zeros((100, 100))
+        print(Result)
+        if Result:
+            Serial.SendResult()
+        
+        cv2.imshow('a', init)
+        EndButton = cv2.waitKey(5)
+        if EndButton == ord('q'):
+            break
 
-    cv2.imshow('a', init)
-    w = cv2.waitKey(5)
-    if w == ord('q'):
-        break
-
-
-print(len(k))
-print(np.mean(k,axis=0))
+Serial.EndAndClose()
+cv2.destroyAllWindows()
+print(len(TimeMean))
+print(np.mean(TimeMean,axis=0))
 
 
 #h 35:97 s 27:180 v 0 190

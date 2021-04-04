@@ -38,13 +38,20 @@ class ImplementDetectMethod:
         self.cap.set(cv2.CAP_PROP_AUTO_WB, 0)
 
     def Do(self):
+        DetectResult = True
         self.Detect()
+        for i in range(2):
+            if (self.result[i][1] > 5):
+                DetectResult = False
+            else:
+                DetectResult = True
         print(self.result)
         self.result = [[0, 0], [0, 0]]
+        return DetectResult
 
     def Detect(self):
         self.UpdateData()
-        self.Method.ShowImage(img_threshold=self.ShowThreshold, img_Text=self.img_Text)
+        # self.Method.ShowImage(img_threshold=self.ShowThreshold, img_Text=self.img_Text)
         self.img_Text = []
 
         if self.circles is None:
@@ -64,8 +71,11 @@ class ImplementDetectMethod:
                 if self.result[i][0] > self.result[i][1]:
                     print("%s 正確" % name[i])
                 else:
-                    if (self.result[i][1] > 20):    print("%s 朝向錯誤" % name[i])
-                    else:   print("%s 錯誤" % name[i])
+                    if (self.result[i][1] > 20):    
+                        print("%s 朝向錯誤" % name[i])
+                    else:   
+                        print("%s 錯誤" % name[i])
+                
 
         else:
             self.Detect()

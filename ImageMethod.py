@@ -111,7 +111,6 @@ class ImageDetectMethod:
 
     def Robotis(self, id, speed,COM = "COM3"):
         ser = serial.Serial(COM, 1000000, timeout=0.5)
-
         ser.bytesize = serial.EIGHTBITS
         arr = []
         arr.append(0xff)
