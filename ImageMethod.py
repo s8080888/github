@@ -73,16 +73,14 @@ class ImageDetectMethod:
 
         return img_threshold, self.center, threshold
 
-    def FindCircle(self):
-
+    def Image_Fouriertransform(self, image):
         radius = 15
-        img = cv2.cvtColor(self.image[:, :], cv2.COLOR_BGR2GRAY)
         # 对图像进行傅里叶变换，fft是一个三维数组，fft[:, :, 0]为实数部分，fft[:, :, 1]为虚数部分
-        fft = cv2.dft(np.float32(img), flags=cv2.DFT_COMPLEX_OUTPUT)
+        fft = cv2.dft(np.float32(image), flags=cv2.DFT_COMPLEX_OUTPUT)
         # 对fft进行中心化，生成的dshift仍然是一个三维数组
         dshift = np.fft.fftshift(fft)
         # 得到中心像素
-        rows, cols = img.shape[:2]
+        rows, cols = image.shape[:2]
         mid_row, mid_col = int(rows / 2), int(cols / 2)
         # 构建ButterWorth高通滤波掩模
         mask = np.ones((rows, cols, 2), np.float32)
@@ -96,8 +94,15 @@ class ImageDetectMethod:
         # 对逆变换结果进行归一化（一般对图像处理的最后一步都要进行归一化，特殊情况除外）
         cv2.normalize(image_filtering, image_filtering, 0, 255, cv2.NORM_MINMAX)
         image_filtering = image_filtering.astype('uint8')
-        self.img_canny = image_filtering
-        self.circles = cv2.HoughCircles(image_filtering, cv2.HOUGH_GRADIENT, 1, 180,
+        return image_filtering
+
+
+    def FindCircle(self):
+
+        img = cv2.cvtColor(self.image[:, :], cv2.COLOR_BGR2GRAY)
+        img = self.Image_Fouriertransform(img)
+        self.img_canny = img
+        self.circles = cv2.HoughCircles(img, cv2.HOUGH_GRADIENT, 1, 180,
                                         param1=110, param2=20, minRadius=10, maxRadius=15)
 
         if self.circles is None:

@@ -41,7 +41,7 @@ class ImplementDetectMethod:
         DetectResult = True
         self.Detect()
         for i in range(2):
-            if (self.result[i][1] > 5):
+            if (self.result[i][1] >= 5):
                 DetectResult = False
             else:
                 DetectResult = True
@@ -51,7 +51,7 @@ class ImplementDetectMethod:
 
     def Detect(self):
         self.UpdateData()
-        # self.Method.ShowImage(img_threshold=self.ShowThreshold, img_Text=self.img_Text)
+        self.Method.ShowImage(img_threshold=self.ShowThreshold, img_Text=self.img_Text)
         self.img_Text = []
 
         if self.circles is None:
