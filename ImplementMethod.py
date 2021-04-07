@@ -32,7 +32,7 @@ class ImplementDetectMethod:
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
         self.cap.set(cv2.CAP_PROP_EXPOSURE, -5)
-        self.cap.set(cv2.CAP_PROP_SETTINGS, 1)
+        # self.cap.set(cv2.CAP_PROP_SETTINGS, 1)
         self.cap.set(cv2.CAP_PROP_GAIN, 0)
         self.cap.set(cv2.CAP_PROP_FOCUS, 10)
         self.cap.set(cv2.CAP_PROP_AUTO_WB, 0)
@@ -51,7 +51,7 @@ class ImplementDetectMethod:
 
     def Detect(self):
         self.UpdateData()
-        self.Method.ShowImage(img_threshold=self.ShowThreshold, img_Text=self.img_Text)
+        # self.Method.ShowImage(img_threshold=self.ShowThreshold, img_Text=self.img_Text)
         self.img_Text = []
 
         if self.circles is None:

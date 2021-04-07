@@ -25,7 +25,6 @@ Serial = SerialPortTerminal()
 try:
     while True:
         KeyWord = Serial.ReadCommand()
-        print(KeyWord)
         
         init = np.zeros((100, 100))
         cv2.imshow('a', init)
@@ -45,6 +44,8 @@ try:
 
 except Exception as e:
     print(e)
+
+finally:
     Serial.EndAndClose()
         
 
