@@ -41,14 +41,10 @@ except Exception as e:
 
 finally:
     Serial.EndAndClose()
+    cv2.destroyAllWindows()
+    print("總共執行次數： %d" % len(TimeMean))
+    print("平均時間： %.2f" % np.mean(TimeMean, axis=0))
         
-
-
-Serial.EndAndClose()
-cv2.destroyAllWindows()
-print(len(TimeMean))
-print(np.mean(TimeMean,axis=0))
-
 
 #h 35:97 s 27:180 v 0 190
 # h 36:99 s 86:255 v 0:255
