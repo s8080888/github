@@ -32,6 +32,3 @@ class SerialPortTerminal:
     def EndAndClose(self):
         self.ser.close()
 
-X = comports()
-
-print(X.description)

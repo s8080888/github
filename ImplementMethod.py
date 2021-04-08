@@ -5,6 +5,7 @@ import pytesseract
 import time
 import sys
 from scipy import ndimage
+import itertools
 
 pytesseract.pytesseract.tesseract_cmd = r'E:\Tesseract-ORC\tesseract.exe'
 
@@ -51,7 +52,7 @@ class ImplementDetectMethod:
 
     def Detect(self):
         self.UpdateData()
-        # self.Method.ShowImage(img_threshold=self.ShowThreshold, img_Text=self.img_Text)
+        self.Method.ShowImage(img_threshold=self.ShowThreshold, img_Text=self.img_Text)
         self.img_Text = []
 
         if self.circles is None:
@@ -135,21 +136,23 @@ class ImplementDetectMethod:
 
             crop_x = int(i[0] + self.bais)
             crop_y = int(i[1])
+            Area = abs(x_left - x_right) * abs(y_top - y_down)
+            percentage = 0
 
             k = self.SubFindMin(crop_y,bool=False)
             TextImg = self.image[crop_y - y_top:crop_y - y_down, crop_x - x_left:crop_x - x_right]
             TextImg = cv2.GaussianBlur(TextImg, (3,3), 1)
             kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], np.float32)  # 锐化
-            # TextImg = cv2.filter2D(TextImg, -1, kernel=kernel)
+            TextImg = cv2.filter2D(TextImg, -1, kernel=kernel)
             TextImg = cv2.detailEnhance(TextImg)
 
             TextImg = cv2.cvtColor(TextImg, cv2.COLOR_BGR2GRAY)
             TextImg_Canny = cv2.Canny(TextImg, 30, 150, L2gradient=True)
             _, TextResult = cv2.threshold(TextImg_Canny, 55, 255, cv2.THRESH_BINARY)
             contours_Text, _ = cv2.findContours(TextResult, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+            self.img_Text.append(TextResult)
 
             if mode == 1:
-                self.img_Text.append(TextResult)
                 result_eng = pytesseract.image_to_string(TextResult)
                 arr = result_eng.split('\n')[0:-1]
                 result_eng = '\n'.join(arr)
@@ -158,9 +161,10 @@ class ImplementDetectMethod:
                 else:
                     self.result[k][1] += 1
             else:
-                self.img_Text.append(TextResult)
                 try:
-                    if(len(contours_Text[1])) > 10:
+                    ContourPointNum = list(itertools.chain(*contours_Text))
+                    percentage = (len(ContourPointNum) / Area) * 100
+                    if(percentage > 13):
                         self.result[k][0] += 1
                     else:
                         self.result[k][1] += 1

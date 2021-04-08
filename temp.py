@@ -26,12 +26,6 @@ try:
     while True:
         KeyWord = Serial.ReadCommand()
         
-        init = np.zeros((100, 100))
-        cv2.imshow('a', init)
-        EndButton = cv2.waitKey(5)
-        
-        if EndButton == ord('q'):
-            break
         if(KeyWord):
             time_start = time.time()
             Result = Method.Do()
