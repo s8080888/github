@@ -61,14 +61,19 @@ parser = argparse.ArgumentParser(description='Code for Thresholding Operations u
 parser.add_argument('--camera', help='Camera divide number.', default=0, type=int)
 args = parser.parse_args()
 
+
 cap = cv.VideoCapture(args.camera,cv.CAP_DSHOW)
 cv.namedWindow(window_capture_name)
 cv.namedWindow(window_detection_name)
 cap.set(cv.CAP_PROP_SETTINGS, 1)
 cap.set(cv.CAP_PROP_WHITE_BALANCE_BLUE_U,4005)
+cap.set(cv.CAP_PROP_FRAME_WIDTH, 1920)
+cap.set(cv.CAP_PROP_FRAME_HEIGHT, 1080)
 currentWB = cap.get(cv.CAP_PROP_WHITE_BALANCE_BLUE_U)
 
 print(currentWB)
+
+
 
 cv.createTrackbar(low_H_name, window_detection_name , low_H, max_value_H, on_low_H_thresh_trackbar)
 cv.createTrackbar(high_H_name, window_detection_name , high_H, max_value_H, on_high_H_thresh_trackbar)
@@ -86,8 +91,8 @@ while True:
     frame_threshold = cv.inRange(frame_HSV, (low_H, low_S, low_V), (high_H, high_S, high_V))
     
     kernel = np.ones((3, 3), np.uint8)
-    threshold = cv.erode(frame_threshold, kernel, iterations=5)
-    threshold = cv.dilate(frame_threshold, kernel, iterations=5)
+    threshold = cv.erode(frame_threshold, kernel, iterations=9)
+    threshold = cv.dilate(frame_threshold, kernel, iterations=9)
       
     cv.imshow(window_capture_name, frame)
     cv.imshow(window_detection_name, frame_threshold)

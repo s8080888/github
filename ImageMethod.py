@@ -103,7 +103,7 @@ class ImageDetectMethod:
         img = self.Image_Fouriertransform(img)
         self.img_canny = img
         self.circles = cv2.HoughCircles(img, cv2.HOUGH_GRADIENT, 1, 180,
-                                        param1=110, param2=20, minRadius=10, maxRadius=15)
+                                        param1=100, param2=20, minRadius=10, maxRadius=15)
 
         if self.circles is None:
             pass
@@ -113,27 +113,6 @@ class ImageDetectMethod:
                 cv2.circle(self.image, (int(i[0]), int(i[1])), 2, (0, 0, 255), 3)
 
         return self.circles
-
-    def Robotis(self, id, speed,COM = "COM3"):
-        ser = serial.Serial(COM, 1000000, timeout=0.5)
-        ser.bytesize = serial.EIGHTBITS
-        arr = []
-        arr.append(0xff)
-        arr.append(0xff)
-        arr.append(id)
-        arr.append(0x05)
-        arr.append(0x03)
-        arr.append(0x20)
-        arr.append(speed & 255)
-        arr.append(speed // 256)
-        tt = 0xff - (sum(arr[2:len(arr)-1]) & 255)
-        arr.append(tt)
-        ser.write(arr)
-
-
-
-
-
 
 
 
