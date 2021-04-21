@@ -39,6 +39,7 @@ class ImplementDetectMethod:
         self.cap.set(cv2.CAP_PROP_AUTO_WB, 0)
 
     def Do(self):
+        self.WebCam()
         DetectResult = True
         self.Detect()
         for i in range(2):
@@ -46,9 +47,10 @@ class ImplementDetectMethod:
                 DetectResult = False
             else:
                 DetectResult = True
-        print(self.result)
+        result = self.result
         self.result = [[0, 0], [0, 0]]
-        return DetectResult
+        print(result)
+        return DetectResult, result
 
     def Detect(self):
         self.UpdateData()
@@ -164,7 +166,6 @@ class ImplementDetectMethod:
                 try:
                     ContourPointNum = list(itertools.chain(*contours_Text))
                     percentage = (len(ContourPointNum) / Area) * 100
-                    print(percentage)
                     if(percentage > 8):
                         self.result[k][0] += 1
                     else:
