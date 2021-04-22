@@ -143,13 +143,20 @@ class ImplementDetectMethod:
 
             k = self.SubFindMin(crop_y,bool=False)
             TextImg = self.image[crop_y - y_top:crop_y - y_down, crop_x - x_left:crop_x - x_right]
-            TextImg = cv2.GaussianBlur(TextImg, (3,3), 3)
+
+            TextImg_GaussianBulr = cv2.GaussianBlur(TextImg, (3,3), 1)
+            TextImg = cv2.GaussianBlur(TextImg, (3, 3), 1)
+            # TextImg = cv2.ximgproc.jointBilateralFilter(TextImg_GaussianBulr, TextImg, 3, 100, 1, borderType=cv2.BORDER_DEFAULT)
+            # TextImg = cv2.medianBlur(TextImg, 3)
             kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], np.float32)  # 锐化
             TextImg = cv2.filter2D(TextImg, -1, kernel=kernel)
             # TextImg = cv2.detailEnhance(TextImg)
 
+
             TextImg = cv2.cvtColor(TextImg, cv2.COLOR_BGR2GRAY)
-            TextImg_Canny = cv2.Canny(TextImg, 30, 150, L2gradient=True)
+            # TextImg_Canny = cv2.Canny(TextImg, 30, 150, L2gradient=True)
+            TextImg_Canny = cv2.Sobel(TextImg, cv2.CV_64F, 0, 1)
+            TextImg_Canny = np.uint8(np.absolute(TextImg_Canny))
             _, TextResult = cv2.threshold(TextImg_Canny, 55, 255, cv2.THRESH_BINARY)
             contours_Text, _ = cv2.findContours(TextResult, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
             self.img_Text.append(TextResult)
@@ -166,7 +173,8 @@ class ImplementDetectMethod:
                 try:
                     ContourPointNum = list(itertools.chain(*contours_Text))
                     percentage = (len(ContourPointNum) / Area) * 100
-                    if(percentage > 8):
+                    print(percentage)
+                    if(percentage > 4.75):
                         self.result[k][0] += 1
                     else:
                         self.result[k][1] += 1

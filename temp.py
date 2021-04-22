@@ -36,7 +36,7 @@ if __name__ == '__main__':
                 Switch = Serial.ReadCommand()
                 time_start = time.time()
                 res = Pool.apply_async(Detect, (Switch, Method))
-                Result = res.get(3)
+                Result = res.get(30)
                 time_end = time.time() - time_start
                 print("耗費時間共 %.2f " % time_end)
                 TimeMean.append(time_end)
