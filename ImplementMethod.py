@@ -158,12 +158,13 @@ class ImplementDetectMethod:
 
 
             TextImg = cv2.cvtColor(TextImg, cv2.COLOR_BGR2GRAY)
-            TextImg_Canny = cv2.Canny(TextImg, 5, 150, L2gradient=True)
+            TextImg_Canny = cv2.Canny(TextImg, 30, 150, L2gradient=True)
             # TextImg_Canny = cv2.Sobel(TextImg, cv2.CV_64F, 0, 1)
             # TextImg_Canny = np.uint8(np.absolute(TextImg_Canny))
             _, TextResult = cv2.threshold(TextImg_Canny, 55, 255, cv2.THRESH_BINARY)
             contours_Text, _ = cv2.findContours(TextResult, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
-            self.img_Text.append(TextResult)
+            self.img_Text.append(TextImg)
+            cv2.imwrite('test.jpg', Crop_TextImg)
 
             if mode == 1:
                 result_eng = pytesseract.image_to_string(TextResult)
@@ -177,7 +178,7 @@ class ImplementDetectMethod:
                 try:
                     ContourPointNum = list(itertools.chain(*contours_Text))
                     percentage = (len(ContourPointNum) / Area) * 100
-                    print(result_eng)
+                    print(percentage)
                     if(percentage > 4.75):
                         self.result[k][0] += 1
                     else:
