@@ -6,6 +6,8 @@ import time
 import sys
 from scipy import ndimage
 import itertools
+from wrapt_timeout_decorator import *
+
 
 pytesseract.pytesseract.tesseract_cmd = r'E:\Tesseract-ORC\tesseract.exe'
 
@@ -26,6 +28,7 @@ class ImplementDetectMethod:
 
         self.result = [[0,0],[0,0]]
         self.Loss = 0
+        self.time = time.time()
 
     def WebCam(self):
         self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
@@ -39,7 +42,6 @@ class ImplementDetectMethod:
         self.cap.set(cv2.CAP_PROP_AUTO_WB, 0)
 
     def Do(self):
-        self.WebCam()
         DetectResult = True
         self.Detect()
         for i in range(2):
@@ -50,6 +52,7 @@ class ImplementDetectMethod:
         result = self.result
         self.result = [[0, 0], [0, 0]]
         print(result)
+        self.time = time.time()
         return DetectResult, result
 
     def Detect(self):
@@ -81,6 +84,7 @@ class ImplementDetectMethod:
                 
 
         else:
+            self.TimeOut()
             self.Detect()
 
     def UpdateData(self):
@@ -142,10 +146,10 @@ class ImplementDetectMethod:
             percentage = 0
 
             k = self.SubFindMin(crop_y,bool=False)
-            TextImg = self.image[crop_y - y_top:crop_y - y_down, crop_x - x_left:crop_x - x_right]
+            Crop_TextImg = self.image[crop_y - y_top:crop_y - y_down, crop_x - x_left:crop_x - x_right]
 
-            TextImg_GaussianBulr = cv2.GaussianBlur(TextImg, (3,3), 1)
-            TextImg = cv2.GaussianBlur(TextImg, (3, 3), 1)
+            TextImg_GaussianBulr = cv2.GaussianBlur(Crop_TextImg, (3,3), 1)
+            TextImg = cv2.GaussianBlur(Crop_TextImg, (3, 3), 1)
             # TextImg = cv2.ximgproc.jointBilateralFilter(TextImg_GaussianBulr, TextImg, 3, 100, 1, borderType=cv2.BORDER_DEFAULT)
             # TextImg = cv2.medianBlur(TextImg, 3)
             kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], np.float32)  # 锐化
@@ -154,13 +158,13 @@ class ImplementDetectMethod:
 
 
             TextImg = cv2.cvtColor(TextImg, cv2.COLOR_BGR2GRAY)
-            # TextImg_Canny = cv2.Canny(TextImg, 30, 150, L2gradient=True)
-            TextImg_Canny = cv2.Sobel(TextImg, cv2.CV_64F, 0, 1)
-            TextImg_Canny = np.uint8(np.absolute(TextImg_Canny))
+            TextImg_Canny = cv2.Canny(TextImg, 5, 150, L2gradient=True)
+            # TextImg_Canny = cv2.Sobel(TextImg, cv2.CV_64F, 0, 1)
+            # TextImg_Canny = np.uint8(np.absolute(TextImg_Canny))
             _, TextResult = cv2.threshold(TextImg_Canny, 55, 255, cv2.THRESH_BINARY)
             contours_Text, _ = cv2.findContours(TextResult, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
             self.img_Text.append(TextResult)
- 
+
             if mode == 1:
                 result_eng = pytesseract.image_to_string(TextResult)
                 arr = result_eng.split('\n')[0:-1]
@@ -173,7 +177,7 @@ class ImplementDetectMethod:
                 try:
                     ContourPointNum = list(itertools.chain(*contours_Text))
                     percentage = (len(ContourPointNum) / Area) * 100
-                    print(percentage)
+                    print(result_eng)
                     if(percentage > 4.75):
                         self.result[k][0] += 1
                     else:
@@ -197,3 +201,8 @@ class ImplementDetectMethod:
                 continue
 
         return True
+
+    def TimeOut(self):
+        result = lambda WastedTime: True if (WastedTime - self.time) > 5 else False
+        if result(time.time()):
+            raise TimeoutError
