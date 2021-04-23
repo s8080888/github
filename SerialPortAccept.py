@@ -9,6 +9,7 @@ import keyboard
 from time import sleep
 from serial.tools.list_ports import comports
 import re
+import time
 
 
 class SerialPortTerminal:
@@ -21,9 +22,15 @@ class SerialPortTerminal:
         self.ser = serial.Serial(ConnectNumber, 9600)
 
     def ReadCommand(self):
-        data_raw = self.ser.readline()
+        data_raw = self.ser.readline().splitlines()
         result = lambda JudgMent: True if JudgMent > 0 else False
-        return result(int(data_raw))
+        print(len(data_raw[0]))
+        print(type(data_raw[0]))
+        if len(data_raw[0]) > 0:
+            return result(int(data_raw[0]))
+        else:
+            self.ReadCommand()
+
 
     def SendResult(self):
         self.ser.write(b'2')
@@ -31,4 +38,5 @@ class SerialPortTerminal:
 
     def EndAndClose(self):
         self.ser.close()
+
 
