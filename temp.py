@@ -6,12 +6,9 @@ This is a temporary script file.
 """
 
 import time
-import numpy as np
 
 from ImplementMethod import ImplementDetectMethod
 from SerialPortAccept import SerialPortTerminal
-
-from multiprocessing import Pool, TimeoutError
 
 def Detect(switch, Method):
     if switch:
@@ -26,23 +23,24 @@ if __name__ == '__main__':
     Method.WebCam()
     while True:
         try:
-                Switch = Serial.ReadCommand()
-                time_start = time.time()
-                Detect(Switch, Method)
-                time_end = time.time() - time_start
-                print("耗費時間共 %.2f " % time_end)
-                TimeMean.append(time_end)
+            Switch = Serial.ReadCommand()
+            time_start = time.time()
+            Detect(Switch, Method)
+            time_end = time.time() - time_start
+            print("耗費時間共 %.2f " % time_end)
+            TimeMean.append(time_end)
 
         except KeyboardInterrupt:
             Serial.EndAndClose()
 
-        except TimeoutError:
-            print("TimeOut")
+        except TimeoutError as e:
+            print(e)
             continue
 
-        # except Exception as e:
-        #     print(e)
-        #     Serial.EndAndClose()
+        except Exception as e:
+            print(e)
+            continue
+            # Serial.EndAndClose()
 
         # finally:
         #     Serial.EndAndClose()

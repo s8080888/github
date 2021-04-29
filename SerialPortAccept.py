@@ -24,8 +24,6 @@ class SerialPortTerminal:
     def ReadCommand(self):
         data_raw = self.ser.readline().splitlines()
         result = lambda JudgMent: True if JudgMent > 0 else False
-        print(len(data_raw[0]))
-        print(type(data_raw[0]))
         if len(data_raw[0]) > 0:
             return result(int(data_raw[0]))
         else:
